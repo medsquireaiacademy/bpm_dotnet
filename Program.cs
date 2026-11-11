@@ -21,7 +21,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Bee Properties Admin API",
         Version = "v1",
-        Description = "ASP.NET Core Web API for Bee Properties Community Management, with CQRS & Handler Architecture."
+        Description = "ASP.NET Core Web API for Bee Properties Management (Community, Agency), with CQRS & Handler Architecture."
     });
 
     // Include XML comments if available

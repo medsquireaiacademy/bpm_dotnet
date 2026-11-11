@@ -64,6 +64,101 @@ Content-Type: application/json
 ### Delete Community
 DELETE {{beeproperties.admin.webapi_HostAddress}}/api/community/bee-oasis-test
 
+### Get All Agencies
+GET {{beeproperties.admin.webapi_HostAddress}}/api/agency
+Accept: application/json
+
+### Filter Agencies by Category
+GET {{beeproperties.admin.webapi_HostAddress}}/api/agency?category=Security%20Services
+Accept: application/json
+
+### Get Agency by ID
+GET {{beeproperties.admin.webapi_HostAddress}}/api/agency/ag-1
+Accept: application/json
+
+### Create New Agency
+POST {{beeproperties.admin.webapi_HostAddress}}/api/agency
+Content-Type: application/json
+
+{
+  "id": "ag-test-99",
+  "name": "Elite Guard & Patrol Services",
+  "category": "Security Services",
+  "categories": [
+    "Security Services",
+    "Surveillance"
+  ],
+  "logoText": "EGPS",
+  "contactPerson": "Marcus Sterling",
+  "phone": "+1 555-019-2834",
+  "email": "contact@eliteguardpatrol.com",
+  "agreementStatus": "Active (Contracted thru Dec 2028)",
+  "availabilityStatus": "Available",
+  "totalPersonnel": 12,
+  "allocatedPersonnel": 8,
+  "availablePersonnel": 4,
+  "onLeavePersonnel": 0,
+  "activeAssignmentsCount": 2,
+  "registrationRefNumber": "REG-2026-EGPS-99",
+  "registrationStatus": "Approved for Property Assignment",
+  "submissionDate": "2026-02-01",
+  "termsAccepted": true,
+  "declarationAccepted": true,
+  "company": {
+    "name": "Elite Guard & Patrol Services",
+    "registeredCompanyName": "Elite Guard & Patrol LLC",
+    "businessType": "Limited Liability Company",
+    "registrationNumber": "REG-2026-EGPS-LLC",
+    "gstin": "27EGPS9988X1Z5",
+    "pan": "EGPS9988X",
+    "website": "https://www.eliteguardpatrol.com",
+    "yearOfEstablishment": 2020,
+    "numberOfEmployees": 25,
+    "companyEmail": "contact@eliteguardpatrol.com",
+    "companyPhone": "+1 555-019-2834",
+    "addressLine1": "742 Evergreen Terrace",
+    "country": "United States",
+    "state": "California",
+    "city": "Emerald City",
+    "pinCode": "94016",
+    "description": "Premier security and property patrol services."
+  }
+}
+
+### Update Agency
+PUT {{beeproperties.admin.webapi_HostAddress}}/api/agency/ag-test-99
+Content-Type: application/json
+
+{
+  "id": "ag-test-99",
+  "name": "Elite Guard & Patrol Services (Updated)",
+  "category": "Security Services",
+  "categories": [
+    "Security Services",
+    "Surveillance",
+    "Emergency Response"
+  ],
+  "logoText": "EGPS",
+  "contactPerson": "Marcus Sterling",
+  "phone": "+1 555-019-2834",
+  "email": "contact@eliteguardpatrol.com",
+  "agreementStatus": "Active (Contracted thru Dec 2029)",
+  "availabilityStatus": "Available",
+  "totalPersonnel": 15,
+  "allocatedPersonnel": 10,
+  "availablePersonnel": 5,
+  "onLeavePersonnel": 0,
+  "activeAssignmentsCount": 3,
+  "registrationRefNumber": "REG-2026-EGPS-99",
+  "registrationStatus": "Approved for Property Assignment",
+  "submissionDate": "2026-02-01",
+  "termsAccepted": true,
+  "declarationAccepted": true
+}
+
+### Delete Agency
+DELETE {{beeproperties.admin.webapi_HostAddress}}/api/agency/ag-test-99
+
 ### Test WeatherForecast
 GET {{beeproperties.admin.webapi_HostAddress}}/weatherforecast/
 Accept: application/json

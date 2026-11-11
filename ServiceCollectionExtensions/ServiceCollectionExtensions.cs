@@ -18,14 +18,19 @@ namespace beeproperties.admin.webapi.ServiceCollectionExtensions
         {
             // Data Store
             services.AddSingleton<ICommunityDataStore, CommunityDataStore>();
+            services.AddSingleton<IAgencyDataStore, AgencyDataStore>();
 
             // Repositories
             services.AddScoped<ICommunityCommandRepository, CommunityCommandRepository>()
                     .AddScoped<ICommunityQueryRepository, CommunityQueryRepository>();
+            services.AddScoped<IAgencyCommandRepository, AgencyCommandRepository>()
+                    .AddScoped<IAgencyQueryRepository, AgencyQueryRepository>();
 
             // Services
             services.AddScoped<ICommunityCommandService, CommunityCommandService>()
                     .AddScoped<ICommunityQueryService, CommunityQueryService>();
+            services.AddScoped<IAgencyCommandService, AgencyCommandService>()
+                    .AddScoped<IAgencyQueryService, AgencyQueryService>();
 
             // Handlers
             services.AddScoped<ICreateCommunityHandler, CreateCommunityHandler>()
@@ -33,6 +38,12 @@ namespace beeproperties.admin.webapi.ServiceCollectionExtensions
                     .AddScoped<IDeleteCommunityHandler, DeleteCommunityHandler>()
                     .AddScoped<IGetAllCommunitiesHandler, GetAllCommunitiesHandler>()
                     .AddScoped<IGetCommunityByIdHandler, GetCommunityByIdHandler>();
+
+            services.AddScoped<ICreateAgencyHandler, CreateAgencyHandler>()
+                    .AddScoped<IUpdateAgencyHandler, UpdateAgencyHandler>()
+                    .AddScoped<IDeleteAgencyHandler, DeleteAgencyHandler>()
+                    .AddScoped<IGetAllAgenciesHandler, GetAllAgenciesHandler>()
+                    .AddScoped<IGetAgencyByIdHandler, GetAgencyByIdHandler>();
 
             return services;
         }
