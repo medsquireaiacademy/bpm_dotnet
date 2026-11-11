@@ -1,0 +1,69 @@
+@beeproperties.admin.webapi_HostAddress = http://localhost:5286
+
+### Get All Communities
+GET {{beeproperties.admin.webapi_HostAddress}}/api/community
+Accept: application/json
+
+### Get Community by ID
+GET {{beeproperties.admin.webapi_HostAddress}}/api/community/bee-community-master
+Accept: application/json
+
+### Create New Community
+POST {{beeproperties.admin.webapi_HostAddress}}/api/community
+Content-Type: application/json
+
+{
+  "id": "bee-oasis-test",
+  "name": "Bee Oasis Test Community",
+  "tagline": "Eco-friendly Luxury Haven",
+  "description": "A premier modern development with lush gardens and smart amenities.",
+  "address": "500 Green Meadow Lane",
+  "city": "Emerald City",
+  "state": "CA",
+  "zip": "94018",
+  "aerialImage": "/Images/oasis.jpg",
+  "totalApartments": 1,
+  "totalBlocks": 2,
+  "totalFloors": 8,
+  "totalFlats": 32,
+  "valuation": "$25M",
+  "established": 2025,
+  "amenities": [
+    {
+      "id": "am-oasis-1",
+      "name": "Zen Pool Deck",
+      "category": "Aquatics",
+      "desc": "Heated saltwater swimming pool",
+      "icon": "Waves"
+    }
+  ]
+}
+
+### Update Community
+PUT {{beeproperties.admin.webapi_HostAddress}}/api/community/bee-oasis-test
+Content-Type: application/json
+
+{
+  "id": "bee-oasis-test",
+  "name": "Bee Oasis Test Community (Updated)",
+  "tagline": "Updated Eco-friendly Luxury Haven",
+  "description": "Updated description with enhanced clubhouse amenities.",
+  "address": "500 Green Meadow Lane",
+  "city": "Emerald City",
+  "state": "CA",
+  "zip": "94018",
+  "aerialImage": "/Images/oasis-updated.jpg",
+  "totalApartments": 1,
+  "totalBlocks": 2,
+  "totalFloors": 8,
+  "totalFlats": 32,
+  "valuation": "$27M",
+  "established": 2025
+}
+
+### Delete Community
+DELETE {{beeproperties.admin.webapi_HostAddress}}/api/community/bee-oasis-test
+
+### Test WeatherForecast
+GET {{beeproperties.admin.webapi_HostAddress}}/weatherforecast/
+Accept: application/json
