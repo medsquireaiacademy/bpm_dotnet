@@ -21,5 +21,6 @@
 ## Publishing and logs
 *.log
 publish/
+*.zip
 [Pp]ackages/
 
