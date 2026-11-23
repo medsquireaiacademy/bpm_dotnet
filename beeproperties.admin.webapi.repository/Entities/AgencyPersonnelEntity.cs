@@ -9,6 +9,7 @@ namespace beeproperties.admin.webapi.repository.Entities
         public string Status { get; set; } = string.Empty;
         public string CurrentShift { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
+        public string? Email { get; set; } = string.Empty;
     }
 }
 

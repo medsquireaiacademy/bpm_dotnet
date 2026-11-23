@@ -149,6 +149,368 @@ namespace beeproperties.admin.webapi.services.Commands
             return _commandRepository.DeleteAsync(command.Id, cancellationToken);
         }
 
+        public async Task<AgencyDetailResponse?> ReviewRegistrationAsync(ReviewAgencyRegistrationCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return null;
+
+            agency.RegistrationStatus = command.Decision switch
+            {
+                "Approve" => "Approved",
+                "Reject" => "Rejected",
+                "Request Changes" => "Changes Requested",
+                _ => command.Decision
+            };
+
+            if (command.Decision == "Approve")
+            {
+                agency.AgreementStatus = "Active";
+                agency.AvailabilityStatus = "Available";
+            }
+
+            agency.ApprovalHistory.Insert(0, new AgencyApprovalHistoryEntity
+            {
+                Id = $"appr-{DateTime.UtcNow.Ticks}",
+                Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
+                Type = "Agency Registration Review",
+                Decision = command.Decision,
+                Reviewer = "Super Admin",
+                Comments = command.Comments ?? string.Empty,
+                ChangesRequested = command.ChangesRequested
+            });
+
+            var updated = await _commandRepository.UpdateAsync(agency, cancellationToken);
+            return updated == null ? null : MapToDetailResponse(updated);
+        }
+
+        public async Task<AgencyPersonnelDto?> AddPersonnelAsync(CreateAgencyPersonnelCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return null;
+
+            var personnel = new AgencyPersonnelEntity
+            {
+                Id = $"staff-{DateTime.UtcNow.Ticks}",
+                Name = command.Name.Trim(),
+                Role = command.Role.Trim(),
+                Experience = command.Experience ?? "5 yrs",
+                Phone = command.Phone ?? string.Empty,
+                Email = command.Email ?? string.Empty,
+                Status = command.Status ?? "Available",
+                CurrentShift = command.CurrentShift ?? "Unassigned"
+            };
+
+            agency.Personnel.Add(personnel);
+            agency.TotalPersonnel = agency.Personnel.Count;
+            agency.AvailablePersonnel = agency.Personnel.Count(p => p.Status == "Available");
+            agency.AllocatedPersonnel = agency.Personnel.Count(p => p.Status == "Allocated" || p.Status == "On Duty");
+            agency.OnLeavePersonnel = agency.Personnel.Count(p => p.Status == "On Leave");
+
+            await _commandRepository.UpdateAsync(agency, cancellationToken);
+
+            return new AgencyPersonnelDto
+            {
+                Id = personnel.Id,
+                Name = personnel.Name,
+                Role = personnel.Role,
+                Experience = personnel.Experience,
+                Phone = personnel.Phone,
+                Email = personnel.Email,
+                Status = personnel.Status,
+                CurrentShift = personnel.CurrentShift
+            };
+        }
+
+        public async Task<AgencyPersonnelDto?> UpdatePersonnelAsync(UpdateAgencyPersonnelCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return null;
+
+            var existing = agency.Personnel.FirstOrDefault(p => p.Id == command.PersonnelId);
+            if (existing == null) return null;
+
+            existing.Name = command.Name.Trim();
+            existing.Role = command.Role.Trim();
+            if (!string.IsNullOrEmpty(command.Experience)) existing.Experience = command.Experience;
+            if (command.Phone != null) existing.Phone = command.Phone;
+            if (command.Email != null) existing.Email = command.Email;
+            if (!string.IsNullOrEmpty(command.Status)) existing.Status = command.Status;
+            if (!string.IsNullOrEmpty(command.CurrentShift)) existing.CurrentShift = command.CurrentShift;
+
+            agency.TotalPersonnel = agency.Personnel.Count;
+            agency.AvailablePersonnel = agency.Personnel.Count(p => p.Status == "Available");
+            agency.AllocatedPersonnel = agency.Personnel.Count(p => p.Status == "Allocated" || p.Status == "On Duty");
+            agency.OnLeavePersonnel = agency.Personnel.Count(p => p.Status == "On Leave");
+
+            await _commandRepository.UpdateAsync(agency, cancellationToken);
+
+            return new AgencyPersonnelDto
+            {
+                Id = existing.Id,
+                Name = existing.Name,
+                Role = existing.Role,
+                Experience = existing.Experience,
+                Phone = existing.Phone,
+                Email = existing.Email,
+                Status = existing.Status,
+                CurrentShift = existing.CurrentShift
+            };
+        }
+
+        public async Task<bool> DeletePersonnelAsync(DeleteAgencyPersonnelCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return false;
+
+            var removed = agency.Personnel.RemoveAll(p => p.Id == command.PersonnelId) > 0;
+            if (removed)
+            {
+                agency.TotalPersonnel = agency.Personnel.Count;
+                agency.AvailablePersonnel = agency.Personnel.Count(p => p.Status == "Available");
+                agency.AllocatedPersonnel = agency.Personnel.Count(p => p.Status == "Allocated" || p.Status == "On Duty");
+                agency.OnLeavePersonnel = agency.Personnel.Count(p => p.Status == "On Leave");
+                await _commandRepository.UpdateAsync(agency, cancellationToken);
+            }
+            return removed;
+        }
+
+        public async Task<AgencyPropertyAssignmentDto?> RequestPropertyAssignmentAsync(RequestPropertyAssignmentCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return null;
+
+            var assignment = new AgencyPropertyAssignmentEntity
+            {
+                Id = $"asgn-{DateTime.UtcNow.Ticks}",
+                Organization = command.Organization,
+                PropertyId = command.PropertyId,
+                PropertyName = command.PropertyName,
+                PropertyCode = command.PropertyCode ?? string.Empty,
+                PropertyType = command.PropertyType ?? string.Empty,
+                PropertyAddress = command.PropertyAddress ?? string.Empty,
+                City = command.City ?? string.Empty,
+                State = command.State ?? string.Empty,
+                AssignmentType = command.AssignmentType,
+                AssignedBlocks = command.AssignedBlocks ?? new List<string>(),
+                AssignedFloorsZones = command.AssignedFloorsZones ?? string.Empty,
+                AssignedFacilitiesAreas = command.AssignedFacilitiesAreas ?? new List<string>(),
+                StartDate = command.StartDate,
+                EndDate = command.EndDate ?? string.Empty,
+                RequestedServices = command.RequestedServices ?? new List<string>(),
+                PropertyContactPerson = command.PropertyContactPerson ?? string.Empty,
+                PropertyContactNumber = command.PropertyContactNumber ?? string.Empty,
+                PropertyManagerSponsor = command.PropertyManagerSponsor ?? string.Empty,
+                SupportingDocs = command.SupportingDocs ?? new List<string>(),
+                Reason = command.Reason ?? string.Empty,
+                Status = "Pending Approval"
+            };
+
+            agency.PropertyAssignments.Add(assignment);
+            await _commandRepository.UpdateAsync(agency, cancellationToken);
+
+            return MapPropertyAssignmentEntityToDto(assignment);
+        }
+
+        public async Task<AgencyPropertyAssignmentDto?> ReviewPropertyAssignmentAsync(ReviewPropertyAssignmentCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return null;
+
+            var assignment = agency.PropertyAssignments.FirstOrDefault(pa => pa.Id == command.AssignmentId);
+            if (assignment == null) return null;
+
+            assignment.Status = command.Decision switch
+            {
+                "Approve" => "Approved",
+                "Approve with Restrictions" => "Approved with Restrictions",
+                "Request Changes" => "Changes Requested",
+                "Reject" => "Rejected",
+                _ => command.Decision
+            };
+
+            assignment.ReviewDate = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm");
+            assignment.Reviewer = "Super Admin";
+            assignment.Comments = command.Comments ?? string.Empty;
+            assignment.Restrictions = command.Restrictions ?? string.Empty;
+            if (command.ApprovedServices.Any()) assignment.ApprovedServices = command.ApprovedServices;
+            if (command.ApprovedBlocks.Any()) assignment.ApprovedBlocks = command.ApprovedBlocks;
+            if (!string.IsNullOrEmpty(command.ApprovedStartDate)) assignment.StartDate = command.ApprovedStartDate;
+            if (!string.IsNullOrEmpty(command.ApprovedEndDate)) assignment.EndDate = command.ApprovedEndDate;
+
+            agency.ActiveAssignmentsCount = agency.PropertyAssignments.Count(pa => pa.Status.StartsWith("Approved", StringComparison.OrdinalIgnoreCase) || pa.Status.Equals("Active", StringComparison.OrdinalIgnoreCase));
+
+            agency.ApprovalHistory.Insert(0, new AgencyApprovalHistoryEntity
+            {
+                Id = $"appr-{DateTime.UtcNow.Ticks}",
+                Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
+                Type = $"Property Assignment Review ({assignment.PropertyName})",
+                Decision = command.Decision,
+                Reviewer = "Super Admin",
+                Comments = command.Comments ?? string.Empty,
+                ChangesRequested = command.Restrictions
+            });
+
+            await _commandRepository.UpdateAsync(agency, cancellationToken);
+
+            return MapPropertyAssignmentEntityToDto(assignment);
+        }
+
+        public async Task<bool> RevokePropertyAssignmentAsync(RevokePropertyAssignmentCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return false;
+
+            var assignment = agency.PropertyAssignments.FirstOrDefault(pa => pa.Id == command.AssignmentId);
+            if (assignment == null) return false;
+
+            assignment.Status = "Terminated";
+            agency.ActiveAssignmentsCount = agency.PropertyAssignments.Count(pa => pa.Status.StartsWith("Approved", StringComparison.OrdinalIgnoreCase) || pa.Status.Equals("Active", StringComparison.OrdinalIgnoreCase));
+
+            agency.ApprovalHistory.Insert(0, new AgencyApprovalHistoryEntity
+            {
+                Id = $"appr-{DateTime.UtcNow.Ticks}",
+                Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
+                Type = $"Revocation of Assignment ({assignment.PropertyName})",
+                Decision = "Revoked",
+                Reviewer = "Super Admin",
+                Comments = "Assignment revoked by administrator."
+            });
+
+            await _commandRepository.UpdateAsync(agency, cancellationToken);
+            return true;
+        }
+
+        public async Task<AgencyServiceDto?> AddServiceAsync(CreateAgencyServiceCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return null;
+
+            var s = new AgencyServiceEntity
+            {
+                Id = $"srv-{DateTime.UtcNow.Ticks}",
+                Category = command.Category.Trim(),
+                Specialization = command.Specialization ?? string.Empty,
+                Description = command.Description ?? string.Empty,
+                CoverageArea = command.CoverageArea ?? string.Empty,
+                ExperienceYears = command.YearsOfExperience,
+                Certifications = command.Certifications ?? string.Empty,
+                Availability = command.Availability ?? "Full-time"
+            };
+
+            agency.Services.Add(s);
+            if (!agency.Categories.Contains(s.Category, StringComparer.OrdinalIgnoreCase))
+            {
+                agency.Categories.Add(s.Category);
+            }
+
+            await _commandRepository.UpdateAsync(agency, cancellationToken);
+
+            return new AgencyServiceDto
+            {
+                Id = s.Id,
+                Category = s.Category,
+                Specialization = s.Specialization,
+                Description = s.Description,
+                CoverageArea = s.CoverageArea,
+                ExperienceYears = s.ExperienceYears,
+                Certifications = s.Certifications,
+                Availability = s.Availability
+            };
+        }
+
+        public async Task<bool> DeleteServiceAsync(DeleteAgencyServiceCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return false;
+
+            var removed = agency.Services.RemoveAll(s => s.Id == command.ServiceId) > 0;
+            if (removed)
+            {
+                agency.Categories = agency.Services.Select(s => s.Category).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                await _commandRepository.UpdateAsync(agency, cancellationToken);
+            }
+            return removed;
+        }
+
+        public async Task<AgencyDocumentDto?> AddDocumentAsync(AddAgencyDocumentCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return null;
+
+            var doc = new AgencyDocumentEntity
+            {
+                Id = $"doc-{DateTime.UtcNow.Ticks}",
+                DocumentType = command.DocumentType,
+                FileName = command.FileName,
+                FileUrl = command.FileUrl,
+                UploadDate = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+                VerificationStatus = "Verified",
+                Remarks = command.Description ?? string.Empty
+            };
+
+            agency.Documents.Add(doc);
+            await _commandRepository.UpdateAsync(agency, cancellationToken);
+
+            return new AgencyDocumentDto
+            {
+                Id = doc.Id,
+                DocumentType = doc.DocumentType,
+                FileName = doc.FileName,
+                FileUrl = doc.FileUrl,
+                UploadDate = doc.UploadDate,
+                VerificationStatus = doc.VerificationStatus,
+                Remarks = doc.Remarks
+            };
+        }
+
+        public async Task<bool> DeleteDocumentAsync(DeleteAgencyDocumentCommand command, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(command.AgencyId, cancellationToken);
+            if (agency == null) return false;
+
+            var removed = agency.Documents.RemoveAll(d => d.Id == command.DocumentId) > 0;
+            if (removed)
+            {
+                await _commandRepository.UpdateAsync(agency, cancellationToken);
+            }
+            return removed;
+        }
+
+        private static AgencyPropertyAssignmentDto MapPropertyAssignmentEntityToDto(AgencyPropertyAssignmentEntity pa)
+        {
+            return new AgencyPropertyAssignmentDto
+            {
+                Id = pa.Id,
+                Organization = pa.Organization,
+                PropertyId = pa.PropertyId,
+                PropertyName = pa.PropertyName,
+                PropertyCode = pa.PropertyCode,
+                PropertyType = pa.PropertyType,
+                PropertyAddress = pa.PropertyAddress,
+                City = pa.City,
+                State = pa.State,
+                AssignmentType = pa.AssignmentType,
+                AssignedBlocks = pa.AssignedBlocks ?? new List<string>(),
+                AssignedFloorsZones = pa.AssignedFloorsZones,
+                AssignedFacilitiesAreas = pa.AssignedFacilitiesAreas ?? new List<string>(),
+                StartDate = pa.StartDate,
+                EndDate = pa.EndDate,
+                RequestedServices = pa.RequestedServices ?? new List<string>(),
+                ApprovedServices = pa.ApprovedServices ?? new List<string>(),
+                ApprovedBlocks = pa.ApprovedBlocks ?? new List<string>(),
+                PropertyContactPerson = pa.PropertyContactPerson,
+                PropertyContactNumber = pa.PropertyContactNumber,
+                PropertyManagerSponsor = pa.PropertyManagerSponsor,
+                SupportingDocs = pa.SupportingDocs ?? new List<string>(),
+                Reason = pa.Reason,
+                Status = pa.Status,
+                ReviewDate = pa.ReviewDate,
+                Reviewer = pa.Reviewer,
+                Comments = pa.Comments,
+                Restrictions = pa.Restrictions
+            };
+        }
+
         private static AgencyAgentEntity MapAgentDtoToEntity(AgencyAgentDto dto)
         {
             return new AgencyAgentEntity
