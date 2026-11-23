@@ -83,6 +83,89 @@ namespace beeproperties.admin.webapi.services.Query
             return _queryRepository.ExistsAsync(id, cancellationToken);
         }
 
+        public async Task<List<AgencyPersonnelDto>> GetAgencyPersonnelAsync(GetAgencyPersonnelQuery query, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(query.AgencyId, cancellationToken);
+            if (agency == null) return new List<AgencyPersonnelDto>();
+
+            var personnel = agency.Personnel.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(query.Status))
+            {
+                personnel = personnel.Where(p => p.Status.Equals(query.Status, StringComparison.OrdinalIgnoreCase));
+            }
+            if (!string.IsNullOrWhiteSpace(query.Shift))
+            {
+                personnel = personnel.Where(p => p.CurrentShift.Contains(query.Shift, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return personnel.Select(p => new AgencyPersonnelDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Role = p.Role,
+                Experience = p.Experience,
+                Phone = p.Phone,
+                Email = p.Email,
+                Status = p.Status,
+                CurrentShift = p.CurrentShift
+            }).ToList();
+        }
+
+        public async Task<List<AgencyPropertyAssignmentDto>> GetAgencyPropertyAssignmentsAsync(GetAgencyPropertyAssignmentsQuery query, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(query.AgencyId, cancellationToken);
+            if (agency == null) return new List<AgencyPropertyAssignmentDto>();
+
+            return agency.PropertyAssignments.Select(pa => new AgencyPropertyAssignmentDto
+            {
+                Id = pa.Id,
+                Organization = pa.Organization,
+                PropertyId = pa.PropertyId,
+                PropertyName = pa.PropertyName,
+                PropertyCode = pa.PropertyCode,
+                PropertyType = pa.PropertyType,
+                PropertyAddress = pa.PropertyAddress,
+                City = pa.City,
+                State = pa.State,
+                AssignmentType = pa.AssignmentType,
+                AssignedBlocks = pa.AssignedBlocks ?? new List<string>(),
+                AssignedFloorsZones = pa.AssignedFloorsZones,
+                AssignedFacilitiesAreas = pa.AssignedFacilitiesAreas ?? new List<string>(),
+                StartDate = pa.StartDate,
+                EndDate = pa.EndDate,
+                RequestedServices = pa.RequestedServices ?? new List<string>(),
+                ApprovedServices = pa.ApprovedServices ?? new List<string>(),
+                ApprovedBlocks = pa.ApprovedBlocks ?? new List<string>(),
+                PropertyContactPerson = pa.PropertyContactPerson,
+                PropertyContactNumber = pa.PropertyContactNumber,
+                PropertyManagerSponsor = pa.PropertyManagerSponsor,
+                SupportingDocs = pa.SupportingDocs ?? new List<string>(),
+                Reason = pa.Reason,
+                Status = pa.Status,
+                ReviewDate = pa.ReviewDate,
+                Reviewer = pa.Reviewer,
+                Comments = pa.Comments,
+                Restrictions = pa.Restrictions
+            }).ToList();
+        }
+
+        public async Task<List<AgencyApprovalHistoryDto>> GetAgencyApprovalHistoryAsync(GetAgencyApprovalHistoryQuery query, CancellationToken cancellationToken = default)
+        {
+            var agency = await _queryRepository.GetByIdAsync(query.AgencyId, cancellationToken);
+            if (agency == null) return new List<AgencyApprovalHistoryDto>();
+
+            return agency.ApprovalHistory.Select(ah => new AgencyApprovalHistoryDto
+            {
+                Id = ah.Id,
+                Timestamp = ah.Timestamp,
+                Type = ah.Type,
+                Decision = ah.Decision,
+                Reviewer = ah.Reviewer,
+                Comments = ah.Comments,
+                ChangesRequested = ah.ChangesRequested
+            }).ToList();
+        }
+
         private static AgencyResponse MapToResponse(AgencyEntity entity)
         {
             return new AgencyResponse
